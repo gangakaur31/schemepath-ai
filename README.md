@@ -1,13 +1,13 @@
-# 🎓 SchemePathAI
+# SchemePathAI
 
 ![Python](https://img.shields.io/badge/Python-3.11+-blue) ![FastAPI](https://img.shields.io/badge/FastAPI-0.111+-green) ![Gemini](https://img.shields.io/badge/Gemini-1.5_Flash-orange) ![Playwright](https://img.shields.io/badge/Playwright-Automation-purple) ![Streamlit](https://img.shields.io/badge/Streamlit-Frontend-red)
 
-> **India's first AI-powered autonomous navigator for student government schemes.**
-> One profile. 500+ schemes. Zero confusion.
+> **India's autonomous navigator for student government schemes.**
+> One profile. 500+ schemes. Clear guidance.
 
 ---
 
-## 🎯 Problem Statement
+## Problem Statement
 
 India has **500+ central and state government schemes** for students — scholarships, education loans, hostel benefits, skill development, research fellowships, and more. Yet the vast majority go unutilised because:
 
@@ -20,7 +20,7 @@ India has **500+ central and state government schemes** for students — scholar
 
 ---
 
-## 💡 Solution
+## Solution
 
 SchemePathAI is an **autonomous agentic system** that:
 1. Takes a student's profile (category, income, education, state, interests)
@@ -30,15 +30,15 @@ SchemePathAI is an **autonomous agentic system** that:
 5. Pre-fills application forms and returns step-by-step guidance
 
 ### Key Features
-- 🔍 **Universal Scheme Matcher** — covers 14 categories, not just scholarships
-- 🌐 **Browser Agent** — Playwright navigates real government portals
-- 📄 **Document Checklist Generator** — exact documents needed per scheme
-- 🤖 **LangGraph Agent** — multi-step AI reasoning with error recovery
-- 🛡️ **No Dummy Data** — all data from live official government sources
+- **Universal Scheme Matcher** — covers 14 categories, not just scholarships
+- **Browser Agent** — Playwright navigates real government portals
+- **Document Checklist Generator** — exact documents needed per scheme
+- **LangGraph Agent** — multi-step AI reasoning with error recovery
+- **No Dummy Data** — all data from live official government sources
 
 ---
 
-## 🏗️ Technical Architecture
+## Technical Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -74,7 +74,7 @@ SchemePathAI is an **autonomous agentic system** that:
 
 ---
 
-## ⚡ Quick Start
+## Quick Start
 
 ### Prerequisites
 - Python 3.11+
@@ -113,7 +113,7 @@ Open **http://localhost:8501** in your browser.
 
 ---
 
-## 🔌 API Endpoints
+## API Endpoints
 
 | Method | Endpoint | Description |
 |---|---|---|
@@ -125,28 +125,28 @@ Open **http://localhost:8501** in your browser.
 
 ---
 
-## 📚 Scheme Categories Covered
+## Scheme Categories Covered
 
 | # | Category | Example Schemes |
 |---|---|---|
-| 1 | 📚 Scholarships | NSP Post-Matric, Merit-cum-Means, Minority Scholarship |
-| 2 | 💰 Education Loans | Vidya Lakshmi, PM Vidya Laxmi |
-| 3 | 🏠 Hostel & Housing | Dr. Ambedkar Hostels, SC/ST Hostels |
-| 4 | 🧾 Fee Reimbursement | AP Jagananna Vidya Deevena, state waivers |
-| 5 | 💻 Digital Access | Free laptop schemes, PM e-Vidya |
-| 6 | 🔧 Skill Development | PMKVY, DDU-GKY, NAPS |
-| 7 | 🔬 Research Fellowships | UGC-JRF, CSIR, DST INSPIRE, KVPY |
-| 8 | 🌍 Study Abroad | National Overseas Scholarship |
-| 9 | 👧 Girl Child Schemes | PRAGATI, CBSE Single Girl, Sukanya Samriddhi |
-| 10 | ♿ Differently Abled | AICTE Saksham Scholarship |
-| 11 | 🏅 Sports | TOPS Scheme, SAI Scholarships |
-| 12 | 🏥 Health Insurance | Ayushman Bharat student coverage |
-| 13 | 📖 Book Grants | Free textbook state schemes |
-| 14 | 🧑‍💼 Internships | PM Internship Scheme |
+| 1 | Scholarships | NSP Post-Matric, Merit-cum-Means, Minority Scholarship |
+| 2 | Education Loans | Vidya Lakshmi, PM Vidya Laxmi |
+| 3 | Hostel & Housing | Dr. Ambedkar Hostels, SC/ST Hostels |
+| 4 | Fee Reimbursement | AP Jagananna Vidya Deevena, state waivers |
+| 5 | Digital Access | Free laptop schemes, PM e-Vidya |
+| 6 | Skill Development | PMKVY, DDU-GKY, NAPS |
+| 7 | Research Fellowships | UGC-JRF, CSIR, DST INSPIRE, KVPY |
+| 8 | Study Abroad | National Overseas Scholarship |
+| 9 | Girl Child Schemes | PRAGATI, CBSE Single Girl, Sukanya Samriddhi |
+| 10 | Differently Abled | AICTE Saksham Scholarship |
+| 11 | Sports | TOPS Scheme, SAI Scholarships |
+| 12 | Health Insurance | Ayushman Bharat student coverage |
+| 13 | Book Grants | Free textbook state schemes |
+| 14 | Internships | PM Internship Scheme |
 
 ---
 
-## 🔗 Real Data Sources (No Dummy Data)
+## Real Data Sources (No Dummy Data)
 
 | Source | URL | Usage |
 |---|---|---|
@@ -159,7 +159,7 @@ Open **http://localhost:8501** in your browser.
 
 ---
 
-## 🧠 AI / Tech Stack
+## AI / Tech Stack
 
 | Component | Technology |
 |---|---|
@@ -174,7 +174,7 @@ Open **http://localhost:8501** in your browser.
 
 ---
 
-## 👥 Team
+## Team
 
 | Name | Role |
 |---|---|
@@ -184,6 +184,6 @@ Open **http://localhost:8501** in your browser.
 
 ---
 
-## 📄 License
+## License
 
 MIT License — Built for the Gen AI Buildathon 2026.

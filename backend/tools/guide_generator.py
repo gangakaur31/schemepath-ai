@@ -134,7 +134,7 @@ Return ONLY valid JSON."""
                 category_note = f"Select your category: {category}"
 
             steps = [
-                "Go to 👉 scholarships.gov.in",
+                "Navigate to scholarships.gov.in",
                 "Click 'Applicant Corner' → 'New Registration' (first-time applicants)",
                 f"Select Academic Year → State: {state} → Scholarship Type: {scholarship_type}",
                 "Enter full name, DOB, mobile number → verify with OTP",
@@ -161,7 +161,7 @@ Return ONLY valid JSON."""
         # ── Vidya Lakshmi — Education Loan Portal ────────────────────────────
         elif "vidyalakshmi" in portal:
             steps = [
-                "Go to 👉 vidyalakshmi.co.in",
+                "Navigate to vidyalakshmi.co.in",
                 "Click 'Student Registration' on the homepage",
                 f"Fill: Name: {name} | Email | Mobile | DOB",
                 "Verify your email ID (check inbox for OTP)",
@@ -186,7 +186,7 @@ Return ONLY valid JSON."""
         # ── PM Internship Portal ──────────────────────────────────────────────
         elif "pminternship" in portal:
             steps = [
-                "Go to 👉 pminternship.mca.gov.in",
+                "Navigate to pminternship.mca.gov.in",
                 "Click 'Register as Candidate' button",
                 "Enter mobile number → verify with OTP",
                 f"Fill profile: Name: {name} | DOB | Gender | State: {state}",
@@ -210,7 +210,7 @@ Return ONLY valid JSON."""
         # ── PMKVY — Skill Development ─────────────────────────────────────────
         elif "pmkvy" in portal or "skillindia" in portal:
             steps = [
-                "Go to 👉 pmkvyproject.org",
+                "Navigate to pmkvyproject.org",
                 "Click 'Find a Training Center Near You'",
                 f"Select State: {state} → Select your District",
                 "Choose a skill sector (IT, Construction, Healthcare, etc.)",
@@ -234,7 +234,7 @@ Return ONLY valid JSON."""
         # ── DST INSPIRE / KVPY ───────────────────────────────────────────────
         elif "inspire" in portal or "kvpy" in portal:
             steps = [
-                "Go to 👉 online-inspire.gov.in",
+                "Navigate to online-inspire.gov.in",
                 "Click 'New User Registration'",
                 f"Fill personal details: Name: {name} | DOB | Gender | State: {state}",
                 "Enter Class 12 board exam details and roll number",
@@ -256,7 +256,7 @@ Return ONLY valid JSON."""
         # ── NSP Generic (NOS, Ishan Uday, other NSP schemes) ─────────────────
         elif "nosmsje.gov.in" in portal:
             steps = [
-                "Go to 👉 nosmsje.gov.in",
+                "Navigate to nosmsje.gov.in",
                 "Click 'New Applicant Registration'",
                 f"Fill: Name: {name} | DOB | Category: {category} | State: {state}",
                 "Upload all documents — must be self-attested",
@@ -275,7 +275,7 @@ Return ONLY valid JSON."""
         # ── Generic fallback for all other portals ───────────────────────────
         else:
             steps = [
-                f"Go to 👉 {portal}",
+                f"Navigate to {portal}",
                 "Look for 'Register', 'Apply Now', or 'New Application' button",
                 "Complete the registration with your mobile and email",
                 f"Fill personal details: Name: {name} | State: {state} | Category: {category}",
