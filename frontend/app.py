@@ -8,7 +8,17 @@ import streamlit as st
 import requests
 import pandas as pd
 import json
+import uuid
 from typing import Optional
+
+from storage import (
+    get_scheme_id,
+    get_user_applications,
+    is_scheme_applied,
+    mark_as_applied,
+    unmark_applied,
+    toggle_applied,
+)
 
 # ─── Page Configuration ────────────────────────────────────────────────────────
 
@@ -599,20 +609,30 @@ st.markdown("""
     .metric-label  { font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #475569; }
     .metric-val    { font-size: 1.7rem; font-weight: 800; color: #0F172A; margin-top: 4px; }
 
-    /* ── Scheme Card (Soft pearl surface, crisp dark navy title) ── */
-    .scheme-card {
-        background: #F8FAFC;
-        border-radius: 10px;
-        padding: 24px;
-        margin-bottom: 16px;
-        border: 1.5px solid #CBD5E1;
-        border-left: 5px solid #2563EB;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.03);
-        transition: all 0.2s ease-in-out;
+    /* ── Scheme Card (One single, compact outlined box) ── */
+    [data-testid="stVerticalBlockBorderWrapper"] {
+        background: #F8FAFC !important;
+        border-radius: 10px !important;
+        padding: 20px 22px !important;
+        margin-bottom: 18px !important;
+        border: 1.5px solid #CBD5E1 !important;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.03) !important;
+        transition: all 0.2s ease-in-out !important;
     }
-    .scheme-card:hover {
-        border-color: #93C5FD;
-        box-shadow: 0 4px 14px rgba(37, 99, 235, 0.08);
+    [data-testid="stVerticalBlockBorderWrapper"]:hover {
+        border-color: #93C5FD !important;
+        box-shadow: 0 4px 14px rgba(37, 99, 235, 0.08) !important;
+    }
+
+    /* Keep progress bar and checklist inside card compact */
+    [data-testid="stVerticalBlockBorderWrapper"] div[data-testid="stProgress"] {
+        margin: 6px 0 8px 0 !important;
+    }
+    [data-testid="stVerticalBlockBorderWrapper"] details[data-testid="stExpander"] {
+        background-color: #FFFFFF !important;
+        border: 1.2px solid #E2E8F0 !important;
+        border-radius: 8px !important;
+        margin: 8px 0 !important;
     }
     .scheme-title {
         font-size: 1.22rem;
@@ -830,6 +850,18 @@ if "hindi_audio_cache" not in st.session_state:
     st.session_state.hindi_audio_cache = {}
 if "hindi_audio_open" not in st.session_state:
     st.session_state.hindi_audio_open = set()
+if "applications" not in st.session_state:
+    st.session_state.applications = []
+
+# Ensure user_id exists in session & URL query params for isolation and persistence
+if "user_id" not in st.session_state:
+    q_uid = st.query_params.get("uid")
+    if q_uid:
+        st.session_state.user_id = q_uid
+    else:
+        new_uid = f"user_{uuid.uuid4().hex[:8]}"
+        st.session_state.user_id = new_uid
+        st.query_params["uid"] = new_uid
 
 # ─── Sidebar ──────────────────────────────────────────────────────────────────
 
@@ -1361,7 +1393,10 @@ def _show_results():
 
 
 def _render_scheme_card(scheme: dict):
-    scheme_id = scheme.get("scheme_id", "")
+    scheme_id = get_scheme_id(scheme)
+    user_id = st.session_state.get("user_id", "default_user")
+    is_applied = is_scheme_applied(user_id, scheme_id)
+
     score = scheme.get("eligibility_score", 0.0)
     score_pct = int(score * 100)
     cat = scheme.get("category", "scholarship")
@@ -1369,25 +1404,24 @@ def _render_scheme_card(scheme: dict):
     cat_label = CATEGORY_LABELS.get(cat, cat.replace("_", " ").title())
     sc = score_color(score)
 
-    with st.container():
+    with st.container(border=True):
         st.markdown(f"""
-        <div class='scheme-card' style='border-left-color:{badge_color};'>
-            <div style='display:flex; justify-content:space-between; align-items:flex-start;'>
-                <div style='flex:1; padding-right:16px;'>
-                    <div class='scheme-title'>
-                        {scheme.get('name', 'Government Scheme')}
-                    </div>
-                    <div>
-                        <span class='badge' style='background:{badge_color};'>{cat_label}</span>
-                        {"<span class='benefit-chip'>Benefit: " + scheme.get('benefit_amount','') + "</span>" if scheme.get('benefit_amount') else ""}
-                    </div>
+        <div style='display:flex; justify-content:space-between; align-items:flex-start;'>
+            <div style='flex:1; padding-right:16px;'>
+                <div class='scheme-title'>
+                    {scheme.get('name', 'Government Scheme')}
                 </div>
-                <div style='text-align:right; min-width:130px;'>
-                    <div style='font-size:0.75rem; font-weight:700; text-transform:uppercase; color:#475569;'>Eligibility Match</div>
-                    <div style='font-size:1.65rem; font-weight:800; color:{sc};'>{score_pct}%</div>
+                <div>
+                    <span class='badge' style='background:{badge_color};'>{cat_label}</span>
+                    {"<span class='benefit-chip'>Benefit: " + scheme.get('benefit_amount','') + "</span>" if scheme.get('benefit_amount') else ""}
                 </div>
             </div>
-            <div class='scheme-desc'>{scheme.get('description','')[:320]}…</div>
+            <div style='text-align:right; min-width:130px;'>
+                <div style='font-size:0.75rem; font-weight:700; text-transform:uppercase; color:#475569;'>Eligibility Match</div>
+                <div style='font-size:1.65rem; font-weight:800; color:{sc};'>{score_pct}%</div>
+            </div>
+        </div>
+        <div class='scheme-desc'>{scheme.get('description','')[:320]}…</div>
         """, unsafe_allow_html=True)
 
         st.progress(score)
@@ -1396,77 +1430,86 @@ def _render_scheme_card(scheme: dict):
         reasons = scheme.get("match_reasons", [])
         if reasons:
             reasons_html = "".join([f"<div class='match-reason'><span class='match-dot'></span> {r}</div>" for r in reasons[:4]])
-            st.markdown(f"<div style='margin-top:12px;'>{reasons_html}</div>", unsafe_allow_html=True)
+            st.markdown(f"<div style='margin-top:6px; margin-bottom:10px;'>{reasons_html}</div>", unsafe_allow_html=True)
 
-        st.markdown("</div>", unsafe_allow_html=True)
+        # Required Documents Expander
+        docs = scheme.get("documents_required", [])
+        if docs:
+            with st.expander("Required Documents Checklist"):
+                for doc in docs:
+                    st.markdown(f"- {doc}")
 
-    # Required Documents Expander
-    docs = scheme.get("documents_required", [])
-    if docs:
-        with st.expander("Required Documents Checklist"):
-            for doc in docs:
-                st.markdown(f"- {doc}")
+        # Action Buttons: Apply on Portal | Mark as Applied | Application Guide | Listen in Hindi
+        portal_url = scheme.get("portal_url", "")
+        is_guide_open = scheme_id in st.session_state.open_guides
+        is_audio_open = scheme_id in st.session_state.hindi_audio_open
 
-    # Action Buttons: Apply on Portal | Application Guide Toggle | Listen in Hindi
-    portal_url = scheme.get("portal_url", "")
-    is_guide_open = scheme_id in st.session_state.open_guides
-    is_audio_open = scheme_id in st.session_state.hindi_audio_open
-
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        if portal_url:
-            st.link_button("Apply on Portal", portal_url, use_container_width=True)
-        else:
-            st.button("Apply on Portal", disabled=True, use_container_width=True, key=f"apply_{scheme_id}")
-
-    with col2:
-        guide_button_text = "Close Application Guide" if is_guide_open else "Get Application Guide"
-        if st.button(
-            guide_button_text,
-            key=f"guide_toggle_{scheme_id}",
-            use_container_width=True,
-        ):
-            if is_guide_open:
-                st.session_state.open_guides.remove(scheme_id)
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            if portal_url:
+                st.link_button("Apply on Portal ↗", portal_url, use_container_width=True)
             else:
-                if scheme_id not in st.session_state.guide_cache:
-                    _fetch_guide_for_scheme(scheme)
-                if scheme_id in st.session_state.guide_cache:
-                    st.session_state.open_guides.add(scheme_id)
-            st.rerun()
+                st.button("Apply on Portal ↗", disabled=True, use_container_width=True, key=f"apply_{scheme_id}")
 
-    with col3:
-        audio_btn_label = "Hide Hindi Summary" if is_audio_open else "Listen in Hindi"
-        if st.button(
-            audio_btn_label,
-            key=f"hindi_toggle_{scheme_id}",
-            use_container_width=True,
-        ):
-            if is_audio_open:
-                st.session_state.hindi_audio_open.discard(scheme_id)
-            else:
-                # Invalidate old summary if outside the target 1-minute window (<300 or >680 chars)
-                cached_data = st.session_state.hindi_audio_cache.get(scheme_id)
-                if cached_data:
-                    c_len = len(cached_data.get("text", ""))
-                    if c_len < 300 or c_len > 680:
-                        st.session_state.hindi_audio_cache.pop(scheme_id, None)
+        with col2:
+            mark_btn_label = "✓ Marked Applied" if is_applied else "Mark as Applied"
+            mark_btn_type = "primary" if is_applied else "secondary"
+            if st.button(
+                mark_btn_label,
+                key=f"toggle_applied_{scheme_id}",
+                type=mark_btn_type,
+                use_container_width=True,
+                help="Click to unmark" if is_applied else "Mark as applied to track in My Applications",
+            ):
+                toggle_applied(user_id, scheme)
+                st.rerun()
 
-                if scheme_id not in st.session_state.hindi_audio_cache:
-                    _fetch_hindi_audio(scheme)
-                if scheme_id in st.session_state.hindi_audio_cache:
-                    st.session_state.hindi_audio_open.add(scheme_id)
-            st.rerun()
+        with col3:
+            guide_button_text = "Close Guide" if is_guide_open else "Application Guide"
+            if st.button(
+                guide_button_text,
+                key=f"guide_toggle_{scheme_id}",
+                use_container_width=True,
+            ):
+                if is_guide_open:
+                    st.session_state.open_guides.remove(scheme_id)
+                else:
+                    if scheme_id not in st.session_state.guide_cache:
+                        _fetch_guide_for_scheme(scheme)
+                    if scheme_id in st.session_state.guide_cache:
+                        st.session_state.open_guides.add(scheme_id)
+                st.rerun()
 
-    # Render Hindi audio panel if open
-    if is_audio_open and scheme_id in st.session_state.hindi_audio_cache:
-        _render_hindi_audio_panel(scheme_id, st.session_state.hindi_audio_cache[scheme_id])
+        with col4:
+            audio_btn_label = "Hide Hindi" if is_audio_open else "Listen in Hindi"
+            if st.button(
+                audio_btn_label,
+                key=f"hindi_toggle_{scheme_id}",
+                use_container_width=True,
+            ):
+                if is_audio_open:
+                    st.session_state.hindi_audio_open.discard(scheme_id)
+                else:
+                    # Invalidate old summary if outside the target 1-minute window (<300 or >680 chars)
+                    cached_data = st.session_state.hindi_audio_cache.get(scheme_id)
+                    if cached_data:
+                        c_len = len(cached_data.get("text", ""))
+                        if c_len < 300 or c_len > 680:
+                            st.session_state.hindi_audio_cache.pop(scheme_id, None)
 
-    # If guide is open for this card, render the dropdown section right below
-    if is_guide_open and scheme_id in st.session_state.guide_cache:
-        _render_guide_dropdown(scheme, st.session_state.guide_cache[scheme_id])
+                    if scheme_id not in st.session_state.hindi_audio_cache:
+                        _fetch_hindi_audio(scheme)
+                    if scheme_id in st.session_state.hindi_audio_cache:
+                        st.session_state.hindi_audio_open.add(scheme_id)
+                st.rerun()
 
-    st.markdown("<hr style='border-color:#CBD5E1; margin:12px 0;'/>", unsafe_allow_html=True)
+        # Render Hindi audio panel if open
+        if is_audio_open and scheme_id in st.session_state.hindi_audio_cache:
+            _render_hindi_audio_panel(scheme_id, st.session_state.hindi_audio_cache[scheme_id])
+
+        # If guide is open for this card, render the dropdown section right below
+        if is_guide_open and scheme_id in st.session_state.guide_cache:
+            _render_guide_dropdown(scheme, st.session_state.guide_cache[scheme_id])
 
 
 def _fetch_guide_for_scheme(scheme: dict):
@@ -1599,34 +1642,169 @@ def _render_guide_dropdown(scheme: dict, result: dict):
 
 def page_applications():
     st.markdown("<div class='section-header'>My Applications</div>", unsafe_allow_html=True)
-    st.markdown("""
-    <div class='info-box'>
-    Centralized application tracking integration is underway. Schemes initiated through automated
-    portal assistance will be cataloged here with submission acknowledgments and status updates.
-    </div>
-    """, unsafe_allow_html=True)
 
-    st.markdown("### Official Tracking Dashboards")
+    # ── 1. Compact Application Overview (Summary Cards) ─────────────────────────
+    user_id = st.session_state.get("user_id", "default_user")
+    applied_dict = get_user_applications(user_id)
+    apps = list(applied_dict.values())
+
+    total_count = len(apps)
+    submitted_count = len(apps)
+    under_review_count = 0
+    approved_count = 0
+
+    c1, c2, c3, c4 = st.columns(4)
+    with c1:
+        st.markdown(f"""
+        <div class='metric-card metric-blue'>
+            <div class='metric-label'>Total Applications</div>
+            <div class='metric-val'>{total_count}</div>
+        </div>""", unsafe_allow_html=True)
+    with c2:
+        st.markdown(f"""
+        <div class='metric-card metric-teal'>
+            <div class='metric-label'>Marked Applied</div>
+            <div class='metric-val'>{submitted_count}</div>
+        </div>""", unsafe_allow_html=True)
+    with c3:
+        st.markdown(f"""
+        <div class='metric-card metric-purple'>
+            <div class='metric-label'>Under Review</div>
+            <div class='metric-val'>{under_review_count}</div>
+        </div>""", unsafe_allow_html=True)
+    with c4:
+        st.markdown(f"""
+        <div class='metric-card metric-green'>
+            <div class='metric-label'>Approved</div>
+            <div class='metric-val'>{approved_count}</div>
+        </div>""", unsafe_allow_html=True)
+
+    # ── 2. Applications List or Polished Empty State ─────────────────────────────
+    if apps:
+        st.markdown(f"#### Your Marked Applications ({len(apps)})")
+        st.markdown("""
+        <div class='info-box'>
+        <b>Personal Application Tracker:</b> These schemes were marked as applied by you. This records your application intent and tracking details locally; official processing status should be verified through the respective government portals below.
+        </div>
+        """, unsafe_allow_html=True)
+
+        for app_record in apps:
+            sid = app_record.get("scheme_id", "")
+            cat = app_record.get("category", "scholarship")
+            badge_color = CATEGORY_COLORS.get(cat, "#2563EB")
+            cat_label = CATEGORY_LABELS.get(cat, cat.replace("_", " ").title())
+            portal_url = app_record.get("portal_url", "")
+            marked_time = app_record.get("marked_at", "")
+
+            with st.container(border=True):
+                st.markdown(f"""
+                <div style='display:flex; justify-content:space-between; align-items:flex-start;'>
+                    <div style='flex:1; padding-right:16px;'>
+                        <div class='scheme-title'>
+                            {app_record.get('name', 'Government Scheme')}
+                        </div>
+                        <div>
+                            <span class='badge' style='background:{badge_color};'>{cat_label}</span>
+                            {"<span class='benefit-chip'>Benefit: " + app_record.get('benefit_amount','') + "</span>" if app_record.get('benefit_amount') else ""}
+                        </div>
+                    </div>
+                    <div style='text-align:right;'>
+                        <span class='badge' style='background:#059669;'>✓ Marked as Applied</span>
+                        <div style='font-size:0.75rem; color:#64748B; margin-top:4px;'>{marked_time}</div>
+                    </div>
+                </div>
+                <div class='scheme-desc'>{app_record.get('description','')[:300]}…</div>
+                """, unsafe_allow_html=True)
+
+                col_a, col_b = st.columns([2, 1])
+                with col_a:
+                    if portal_url:
+                        st.link_button("Open Official Portal ↗", portal_url, use_container_width=True)
+                    else:
+                        st.button("Open Official Portal ↗", disabled=True, use_container_width=True, key=f"portal_link_{sid}")
+                with col_b:
+                    if st.button("Mark as Not Applied", key=f"unmark_{sid}", use_container_width=True, help="Remove from your applications"):
+                        unmark_applied(user_id, sid)
+                        st.rerun()
+    else:
+        with st.container(border=True):
+            st.markdown("""
+            <div style='padding: 4px 0;'>
+                <div style='font-size: 1.15rem; font-weight: 800; color: #0F172A; margin-bottom: 6px;'>
+                    No Applications Marked Yet
+                </div>
+                <div style='color: #475569; font-size: 0.92rem; line-height: 1.6; margin-bottom: 16px;'>
+                    When you apply for a scheme or internship, click <b>'Mark as Applied'</b> on any scheme card to save it here for tracking.<br/>
+                    You can also verify your active application status directly through official government portals.
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+            col_btn, _ = st.columns([1, 2])
+            with col_btn:
+                if st.button("Discover Schemes →", type="primary", use_container_width=True, key="btn_discover_from_apps"):
+                    st.session_state.page = "Discover"
+                    st.rerun()
+
+            st.caption(
+                "Note: AVSAR does not claim that an application was officially submitted or verified. This feature only records schemes you have marked as applied."
+            )
+
+    st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
+
+    # ── 3. Official Tracking Dashboards ──────────────────────────────────────────
+    st.markdown("#### Official Tracking Dashboards")
+    st.markdown(
+        "<div style='color: #475569; font-size: 0.88rem; margin-bottom: 14px;'>"
+        "Use these primary national portals to verify the official processing status of your submitted applications."
+        "</div>",
+        unsafe_allow_html=True,
+    )
+
     col1, col2 = st.columns(2)
     with col1:
-        st.markdown("""
-        **MyScheme Central Directory:**
-        1. Access [myscheme.gov.in](https://www.myscheme.gov.in)
-        2. Authenticate via Aadhaar OTP or DigiLocker
-        3. Navigate to 'Track Applications' on your citizen dashboard
-        """)
-    with col2:
-        st.markdown("""
-        **National Scholarship Portal (NSP):**
-        1. Access [scholarships.gov.in](https://scholarships.gov.in)
-        2. Sign in with your Application ID and Password
-        3. View verification stage under 'Check Your Status'
-        """)
+        with st.container(border=True):
+            st.markdown("""
+            <div style='display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;'>
+                <div style='font-size: 1.12rem; font-weight: 800; color: #0F172A;'>MyScheme Portal</div>
+                <span class='badge' style='background: #0284C7;'>National Aggregator</span>
+            </div>
+            <div style='color: #475569; font-size: 0.88rem; line-height: 1.5; margin-bottom: 12px;'>
+                Central citizen directory providing application status for central ministries and state welfare schemes.
+            </div>
+            <div style='background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 8px; padding: 12px 14px; margin-bottom: 16px;'>
+                <div style='font-size: 0.78rem; font-weight: 700; text-transform: uppercase; color: #64748B; margin-bottom: 8px;'>Verification Steps</div>
+                <div style='color: #1E293B; font-size: 0.86rem; line-height: 1.6;'>
+                    <b>1.</b> Access official portal at <a href='https://www.myscheme.gov.in' target='_blank' style='color:#2563EB; font-weight:600;'>myscheme.gov.in</a><br/>
+                    <b>2.</b> Authenticate using Mobile OTP or DigiLocker<br/>
+                    <b>3.</b> Navigate to <b>'Track Applications'</b> on your citizen dashboard<br/>
+                    <b>4.</b> Review application reference timeline and stage updates
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+            st.link_button("Open MyScheme Portal ↗", "https://www.myscheme.gov.in", use_container_width=True)
 
-    st.markdown("<br/>", unsafe_allow_html=True)
-    if st.button("Discover New Schemes"):
-        st.session_state.page = "Discover"
-        st.rerun()
+    with col2:
+        with st.container(border=True):
+            st.markdown("""
+            <div style='display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;'>
+                <div style='font-size: 1.12rem; font-weight: 800; color: #0F172A;'>National Scholarship Portal</div>
+                <span class='badge' style='background: #2563EB;'>NSP Central</span>
+            </div>
+            <div style='color: #475569; font-size: 0.88rem; line-height: 1.5; margin-bottom: 12px;'>
+                Single-window digital platform for Central, UGC/AICTE, and State Government scholarship programs.
+            </div>
+            <div style='background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 8px; padding: 12px 14px; margin-bottom: 16px;'>
+                <div style='font-size: 0.78rem; font-weight: 700; text-transform: uppercase; color: #64748B; margin-bottom: 8px;'>Verification Steps</div>
+                <div style='color: #1E293B; font-size: 0.86rem; line-height: 1.6;'>
+                    <b>1.</b> Access official portal at <a href='https://scholarships.gov.in' target='_blank' style='color:#2563EB; font-weight:600;'>scholarships.gov.in</a><br/>
+                    <b>2.</b> Select <b>'Applicant Corner'</b> and choose your application year<br/>
+                    <b>3.</b> Sign in with your Application ID and Password<br/>
+                    <b>4.</b> Check status under <b>'Check Your Status'</b> (Institute / State verification)
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+            st.link_button("Open NSP Portal ↗", "https://scholarships.gov.in", use_container_width=True)
 
 
 # ─── Page: ABOUT ──────────────────────────────────────────────────────────────
