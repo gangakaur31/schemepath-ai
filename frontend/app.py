@@ -770,6 +770,43 @@ st.markdown("""
         font-size: 0.84rem;
         font-weight: 600;
     }
+
+    /* ── Hindi Voice Audio Widget ── */
+    .hindi-voice-panel {
+        background: #F8FAFC;
+        border: 1.5px solid #CBD5E1;
+        border-left: 5px solid #0284C7;
+        border-radius: 10px;
+        padding: 18px 20px;
+        margin-top: 14px;
+        margin-bottom: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    }
+    .hindi-voice-header {
+        font-size: 0.84rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #0369A1;
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .hindi-voice-text {
+        font-size: 0.96rem;
+        color: #0F172A !important;
+        line-height: 1.8;
+        font-weight: 500;
+        font-family: "Noto Sans Devanagari", "Mangal", -apple-system, sans-serif;
+        background: #FFFFFF;
+        border-radius: 8px;
+        padding: 14px 18px;
+        margin-bottom: 12px;
+        border: 1.5px solid #CBD5E1;
+        box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.02);
+        white-space: pre-wrap;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -789,6 +826,10 @@ if "open_guides" not in st.session_state:
     st.session_state.open_guides = set()
 if "guide_cache" not in st.session_state:
     st.session_state.guide_cache = {}
+if "hindi_audio_cache" not in st.session_state:
+    st.session_state.hindi_audio_cache = {}
+if "hindi_audio_open" not in st.session_state:
+    st.session_state.hindi_audio_open = set()
 
 # ─── Sidebar ──────────────────────────────────────────────────────────────────
 
@@ -1314,6 +1355,8 @@ def _show_results():
         st.session_state.form_step = 1
         st.session_state.open_guides = set()
         st.session_state.guide_cache = {}
+        st.session_state.hindi_audio_cache = {}
+        st.session_state.hindi_audio_open = set()
         st.rerun()
 
 
@@ -1364,11 +1407,12 @@ def _render_scheme_card(scheme: dict):
             for doc in docs:
                 st.markdown(f"- {doc}")
 
-    # Action Buttons: Apply on Portal and Application Guide Toggle
+    # Action Buttons: Apply on Portal | Application Guide Toggle | Listen in Hindi
     portal_url = scheme.get("portal_url", "")
     is_guide_open = scheme_id in st.session_state.open_guides
+    is_audio_open = scheme_id in st.session_state.hindi_audio_open
 
-    col1, col2 = st.columns(2)
+    col1, col2, col3 = st.columns(3)
     with col1:
         if portal_url:
             st.link_button("Apply on Portal", portal_url, use_container_width=True)
@@ -1390,6 +1434,33 @@ def _render_scheme_card(scheme: dict):
                 if scheme_id in st.session_state.guide_cache:
                     st.session_state.open_guides.add(scheme_id)
             st.rerun()
+
+    with col3:
+        audio_btn_label = "Hide Hindi Summary" if is_audio_open else "Listen in Hindi"
+        if st.button(
+            audio_btn_label,
+            key=f"hindi_toggle_{scheme_id}",
+            use_container_width=True,
+        ):
+            if is_audio_open:
+                st.session_state.hindi_audio_open.discard(scheme_id)
+            else:
+                # Invalidate old summary if outside the target 1-minute window (<300 or >680 chars)
+                cached_data = st.session_state.hindi_audio_cache.get(scheme_id)
+                if cached_data:
+                    c_len = len(cached_data.get("text", ""))
+                    if c_len < 300 or c_len > 680:
+                        st.session_state.hindi_audio_cache.pop(scheme_id, None)
+
+                if scheme_id not in st.session_state.hindi_audio_cache:
+                    _fetch_hindi_audio(scheme)
+                if scheme_id in st.session_state.hindi_audio_cache:
+                    st.session_state.hindi_audio_open.add(scheme_id)
+            st.rerun()
+
+    # Render Hindi audio panel if open
+    if is_audio_open and scheme_id in st.session_state.hindi_audio_cache:
+        _render_hindi_audio_panel(scheme_id, st.session_state.hindi_audio_cache[scheme_id])
 
     # If guide is open for this card, render the dropdown section right below
     if is_guide_open and scheme_id in st.session_state.guide_cache:
@@ -1415,6 +1486,47 @@ def _fetch_guide_for_scheme(scheme: dict):
         st.session_state.guide_cache[scheme.get("scheme_id")] = result
     else:
         st.error("Unable to generate application guide. Please try again.")
+
+
+def _fetch_hindi_audio(scheme: dict):
+    """Fetch Hindi TTS summary from backend and store in session state cache."""
+    if not st.session_state.session_id:
+        st.error("No active session. Please run a scheme search first.")
+        return
+
+    payload = {
+        "session_id": st.session_state.session_id,
+        "scheme_id": scheme.get("scheme_id"),
+    }
+    with st.spinner(f"Preparing Hindi audio summary for {scheme.get('name', 'scheme')}..."):
+        result = backend_post("/api/hindi-summary", payload)
+
+    if result and result.get("success"):
+        st.session_state.hindi_audio_cache[scheme.get("scheme_id")] = result
+    else:
+        st.error("Unable to generate Hindi audio summary. Please check your API key and try again.")
+
+
+def _render_hindi_audio_panel(scheme_id: str, result: dict):
+    """Render the Hindi audio panel with transcript and audio player."""
+    import base64
+
+    hindi_text = result.get("text", "")
+    audio_b64  = result.get("audio_b64", "")
+
+    text_html = f"<div class='hindi-voice-text'>{hindi_text}</div>" if hindi_text else ""
+    panel_html = f"""
+    <div class='hindi-voice-panel'>
+        <div class='hindi-voice-header'>HINDI VOICE SUMMARY</div>
+        {text_html}
+    </div>
+    """
+    st.markdown(panel_html, unsafe_allow_html=True)
+
+    if audio_b64:
+        audio_bytes = base64.b64decode(audio_b64)
+        st.audio(audio_bytes, format="audio/mp3")
+
 
 
 def _render_guide_dropdown(scheme: dict, result: dict):

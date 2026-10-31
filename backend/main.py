@@ -21,6 +21,7 @@ from fastapi.staticfiles import StaticFiles
 from agents.scheme_agent import run_scheme_agent
 from agents.browser_agent import run_browser_agent
 from tools.guide_generator import ApplicationGuideGenerator
+from tools.hindi_voice import HindiVoiceGenerator
 from models.schemas import (
     SchemeDiscoveryRequest,
     SchemeDiscoveryResponse,
@@ -199,6 +200,48 @@ async def get_session_schemes(session_id: str) -> SchemeDiscoveryResponse:
             detail=f"No session found for id '{session_id}'.",
         )
     return session_data
+
+
+@app.post("/api/hindi-summary", tags=["Voice"])
+async def get_hindi_voice_summary(request: dict) -> dict:
+    """
+    Generate a Hindi voice summary for a given scheme.
+    Accepts: {"session_id": str, "scheme_id": str}
+    Returns: {"text": str, "audio_b64": str}  — base64-encoded MP3 audio
+    """
+    session_id = request.get("session_id", "")
+    scheme_id  = request.get("scheme_id", "")
+
+    session_data = sessions.get(session_id)
+    scheme_obj = None
+    if session_data:
+        scheme_obj = next(
+            (s for s in session_data.eligible_schemes if s.scheme_id == scheme_id),
+            None,
+        )
+
+    if not scheme_obj:
+        raise HTTPException(status_code=404, detail="Scheme not found in session.")
+
+    scheme_dict = {
+        "name":               scheme_obj.name,
+        "description":        scheme_obj.description,
+        "benefit_amount":     scheme_obj.benefit_amount,
+        "eligibility_summary": scheme_obj.eligibility_summary,
+        "category":           scheme_obj.category.value,
+        "portal_url":         scheme_obj.portal_url,
+        "application_portal": getattr(scheme_obj, "application_portal", "आधिकारिक पोर्टल"),
+        "documents_required": getattr(scheme_obj, "documents_required", []),
+        "deadline":           getattr(scheme_obj, "deadline", None),
+    }
+
+    try:
+        generator = HindiVoiceGenerator()
+        result = generator.generate_audio_base64(scheme_dict)
+        return {"success": True, **result}
+    except Exception as exc:
+        logger.exception("Hindi voice generation failed: %s", exc)
+        raise HTTPException(status_code=500, detail=str(exc))
 
 
 # ─── Dev entrypoint ───────────────────────────────────────────────────────────
