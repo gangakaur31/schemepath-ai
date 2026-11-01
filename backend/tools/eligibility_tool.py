@@ -97,18 +97,7 @@ Return format: [{{"scheme_index": 0, "eligible": true, "eligibility_score": 0.9,
             
         except Exception as e:
             logger.error(f"Gemini eligibility check failed: {e}")
-            # Return neutral scores on failure
-            evaluations = [
-                {
-                    "scheme_index": i,
-                    "eligible": True,
-                    "eligibility_score": 0.5,
-                    "match_reasons": ["Eligibility check unavailable — manual review recommended"],
-                    "ineligibility_reasons": [],
-                    "category": "scholarship",
-                }
-                for i in range(len(schemes))
-            ]
+            raise e
         
         # Build SchemeResult objects
         results = []

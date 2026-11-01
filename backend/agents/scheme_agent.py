@@ -229,8 +229,18 @@ def check_eligibility(state: SchemeState) -> SchemeState:
                     checker.check_batch(profile, raw_schemes)
                 )
                 loop.close()
-                state["eligible_schemes"] = [r.model_dump(mode="json") for r in results]
-                _log(state, f"[check_eligibility] Gemini check complete — {len(results)} results.")
+                # Post-filter Gemini results with strict eligibility rules
+                # to prevent hallucinated category/gender mismatches
+                rule_filtered = _rule_based_eligibility(profile, raw_schemes)
+                disqualified_ids = {r.scheme_id for r in rule_filtered if r.eligibility_score == 0.0}
+                
+                final_results = []
+                for r in results:
+                    if r.scheme_id not in disqualified_ids and r.eligibility_score >= 0.5:
+                        final_results.append(r)
+
+                state["eligible_schemes"] = [r.model_dump(mode="json") for r in final_results]
+                _log(state, f"[check_eligibility] Gemini check complete — {len(final_results)} results.")
                 return state
             except Exception as gemini_exc:
                 logger.warning(f"Gemini eligibility check failed ({gemini_exc}), using rule-based fallback.")
