@@ -1,5 +1,5 @@
-# SchemePathAI — Requirements
-# Install: pip install -r requirements.txt
+# AVSAR — Requirements
+# Install: pip3 install -r requirements.txt
 
 # ── Web Framework ──────────────────────────────────────────────────────────────
 fastapi>=0.111.0
@@ -30,6 +30,9 @@ lxml>=5.2.0
 # ── Frontend ──────────────────────────────────────────────────────────────────
 streamlit>=1.35.0
 pandas>=2.2.0
+
+# ── Voice / TTS ───────────────────────────────────────────────────────────────
+gtts>=2.5.0
 
 # ── Utilities ─────────────────────────────────────────────────────────────────
 python-dotenv>=1.0.1

@@ -1,10 +1,9 @@
 """
-SchemePathAI — FastAPI entry point.
+AVSAR — FastAPI entry point.
 
 Endpoints:
   POST /api/discover   — Discover eligible government schemes for a student profile
-  POST /api/apply      — Automate scheme application via browser agent
-  GET  /api/schemes/{session_id} — Retrieve cached results for a session
+  POST /api/guide      — Generate personalised application guide for a scheme
   GET  /health         — Health check
 """
 
@@ -48,16 +47,16 @@ sessions: Dict[str, SchemeDiscoveryResponse] = {}
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application startup / shutdown lifecycle."""
-    logger.info("SchemePathAI backend starting up…")
+    logger.info("AVSAR backend starting up…")
     yield
-    logger.info("SchemePathAI backend shutting down — clearing %d sessions.", len(sessions))
+    logger.info("AVSAR backend shutting down — clearing %d sessions.", len(sessions))
     sessions.clear()
 
 
 # ─── App factory ──────────────────────────────────────────────────────────────
 
 app = FastAPI(
-    title="SchemePathAI",
+    title="AVSAR",
     description="Autonomous student government scheme navigator powered by LangGraph + Gemini + ChromaDB.",
     version="1.0.0",
     lifespan=lifespan,
@@ -85,7 +84,7 @@ async def health_check() -> dict:
     """Lightweight health probe used by load-balancers and CI checks."""
     return {
         "status": "ok",
-        "service": "SchemePathAI",
+        "service": "AVSAR",
         "active_sessions": len(sessions),
     }
 

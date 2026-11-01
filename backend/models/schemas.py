@@ -1,5 +1,5 @@
 """
-Pydantic schemas for SchemePathAI — the universal student government scheme navigator.
+Pydantic schemas for AVSAR — the universal student government scheme navigator.
 """
 
 from pydantic import BaseModel, Field

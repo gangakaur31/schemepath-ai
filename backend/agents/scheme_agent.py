@@ -1,5 +1,5 @@
 """
-scheme_agent.py — LangGraph state machine for SchemePathAI.
+scheme_agent.py — LangGraph state machine for AVSAR.
 
 Orchestrates the full scheme discovery pipeline in five sequential nodes:
   1. parse_profile       — Validate and extract key attributes from StudentProfile

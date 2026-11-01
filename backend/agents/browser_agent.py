@@ -1,5 +1,5 @@
 """
-browser_agent.py — Playwright-based browser automation agent for SchemePathAI.
+browser_agent.py — Playwright-based browser automation agent for AVSAR.
 
 Navigates real government portals and assists with form filling for scheme
 applications on behalf of students.

@@ -80,7 +80,7 @@ class MySchemeScaper:
                         },
                         headers={
                             "Accept": "application/json",
-                            "User-Agent": "Mozilla/5.0 (compatible; SchemePathAI/1.0)",
+                            "User-Agent": "Mozilla/5.0 (compatible; AVSAR/1.0)",
                         }
                     )
                     if response.status_code == 200:

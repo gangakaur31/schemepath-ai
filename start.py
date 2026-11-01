@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Startup script for SchemePathAI.
+Startup script for AVSAR.
 Starts backend (FastAPI) and frontend (Streamlit) together.
 """
 
@@ -18,7 +18,7 @@ FRONTEND = ROOT / "frontend"
 processes = []
 
 def start():
-    print("Starting SchemePathAI...")
+    print("Starting AVSAR...")
     print("=" * 50)
 
     # Start backend
@@ -39,7 +39,7 @@ def start():
     )
     processes.append(frontend_proc)
 
-    print("\nSchemePathAI is running:")
+    print("\nAVSAR is running:")
     print("   Backend  -> http://localhost:8000")
     print("   Frontend -> http://localhost:8501")
     print("   API Docs -> http://localhost:8000/docs")
@@ -58,7 +58,7 @@ def start():
         stop()
 
 def stop():
-    print("\nShutting down SchemePathAI...")
+    print("\nShutting down AVSAR...")
     for p in processes:
         try:
             p.terminate()
