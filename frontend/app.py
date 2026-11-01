@@ -1099,10 +1099,13 @@ def _show_discovery_form():
             with col1:
                 name = st.text_input("Full Name *", value=fd.get("name", ""), placeholder="e.g. Priya Sharma")
                 age = st.number_input("Age *", min_value=14, max_value=35, value=fd.get("age", 18))
+                gender_opts = ["Male", "Female", "Other"]
+                saved_gender = str(fd.get("gender", "Female")).capitalize()
+                gender_idx = gender_opts.index(saved_gender) if saved_gender in gender_opts else 1
                 gender = st.selectbox(
                     "Gender *",
-                    ["Male", "Female", "Other"],
-                    index=["Male", "Female", "Other"].index(fd.get("gender", "Female")),
+                    gender_opts,
+                    index=gender_idx,
                 )
             with col2:
                 state = st.selectbox(
@@ -1127,10 +1130,14 @@ def _show_discovery_form():
         col1, col2 = st.columns(2)
         with col1:
             category_opts = ["General", "SC", "ST", "OBC", "EWS", "Minority"]
+            saved_cat = str(fd.get("category", "General")).upper()
+            # Map saved values back to category_opts (handling case differences)
+            cat_map = {"GENERAL": 0, "SC": 1, "ST": 2, "OBC": 3, "EWS": 4, "MINORITY": 5}
+            category_idx = cat_map.get(saved_cat, 0)
             category = st.selectbox(
                 "Social Category *",
                 category_opts,
-                index=category_opts.index(fd.get("category", "General")),
+                index=category_idx,
             )
             income = st.number_input(
                 "Annual Family Income (INR) *",
@@ -1147,25 +1154,31 @@ def _show_discovery_form():
             income = max(income, income_slider)
 
             edu_opts = ["Class 8", "Class 10", "Class 12", "Diploma", "Undergraduate", "Postgraduate", "PhD", "Vocational"]
+            saved_edu = fd.get("education_level_label", "Undergraduate")
+            edu_idx = edu_opts.index(saved_edu) if saved_edu in edu_opts else 4
             education_level = st.selectbox(
                 "Current Education Level *",
                 edu_opts,
-                index=edu_opts.index(fd.get("education_level_label", "Undergraduate")),
+                index=edu_idx,
             )
 
         with col2:
             course = st.text_input("Course or Program Name *", value=fd.get("course", ""), placeholder="e.g. B.Tech Computer Science")
             stream_opts = ["Science", "Arts", "Commerce", "Engineering", "Medical", "Law", "Vocational", "Other"]
+            saved_stream = str(fd.get("stream", "Engineering")).capitalize()
+            stream_idx = stream_opts.index(saved_stream) if saved_stream in stream_opts else 3
             stream = st.selectbox(
                 "Academic Stream *",
                 stream_opts,
-                index=stream_opts.index(fd.get("stream", "Engineering")),
+                index=stream_idx,
             )
             inst_opts = ["Government", "Private", "Aided"]
+            saved_inst = str(fd.get("institution_type_label", "Government")).capitalize()
+            inst_idx = inst_opts.index(saved_inst) if saved_inst in inst_opts else 0
             institution_type = st.selectbox(
                 "Institution Type *",
                 inst_opts,
-                index=inst_opts.index(fd.get("institution_type_label", "Government")),
+                index=inst_idx,
             )
             percentage = st.slider(
                 "Previous Academic Percentage / Normalized CGPA *",
