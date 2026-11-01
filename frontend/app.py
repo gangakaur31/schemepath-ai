@@ -1216,10 +1216,13 @@ def _show_discovery_form():
                     value=fd.get("disability_type", ""),
                     placeholder="e.g. Visual Impairment, Locomotor Disability",
                 )
+            interest_options = ["Sports", "Research", "Arts", "Coding", "Agriculture", "None"]
+            raw_saved_interests = fd.get("interests", [])
+            safe_interests_default = [item for item in raw_saved_interests if item in interest_options]
             interests = st.multiselect(
                 "Specialized Interests (if applicable)",
-                ["Sports", "Research", "Arts", "Coding", "Agriculture", "None"],
-                default=fd.get("interests", []),
+                interest_options,
+                default=safe_interests_default,
             )
 
         with col2:
