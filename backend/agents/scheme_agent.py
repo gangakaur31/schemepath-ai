@@ -252,92 +252,175 @@ def check_eligibility(state: SchemeState) -> SchemeState:
 
 def _rule_based_eligibility(profile: StudentProfile, schemes: list) -> List[SchemeResult]:
     """
-    Simple rule-based eligibility scoring when Gemini is unavailable.
-    Scores each scheme based on category, gender, income, education level matching.
+    Strict, accurate rule-based eligibility evaluation.
+    Enforces real hard disqualifications (caste, gender, state, income, disability, education level)
+    so students only see schemes they genuinely qualify for.
     """
     results = []
+    
+    # Normalised student profile attributes
+    cat = (profile.category.value if hasattr(profile.category, "value") else str(profile.category)).lower()
+    gender = (profile.gender.value if hasattr(profile.gender, "value") else str(profile.gender)).lower()
+    income = profile.annual_family_income
+    marks = profile.percentage_marks
+    edu = (profile.education_level.value if hasattr(profile.education_level, "value") else str(profile.education_level)).lower()
+    state_name = (profile.state or "").strip().lower()
+    has_disability = bool(profile.has_disability)
+    user_interests = [i.lower() for i in (profile.interests or [])]
+
+    # Northeast states list for Ishan Uday
+    ne_states = {"assam", "arunachal pradesh", "manipur", "meghalaya", "mizoram", "nagaland", "sikkim", "tripura"}
+
     for raw in schemes:
-        score = 0.5  # base score
-        match_reasons = []
-        ineligibility_reasons = []
+        sid = (raw.get("scheme_id") or "").lower()
+        name_lower = (raw.get("name") or "").lower()
         tags = [t.lower() for t in raw.get("tags", [])]
         eligibility_text = (raw.get("eligibility", "") + " " + raw.get("description", "")).lower()
-        raw_category = raw.get("category", "").lower()
+        raw_category = (raw.get("category") or "").lower()
 
-        # Category matching
-        cat = profile.category.value
-        if cat in ["sc", "st", "obc", "ews", "minority"]:
-            if cat in tags or cat in eligibility_text or cat in raw_category:
-                score += 0.3
-                match_reasons.append(f"Scheme is for {cat.upper()} students")
-            elif "all" in raw_category or raw_category == "":
-                score += 0.1
-                match_reasons.append("Open to all categories")
+        score = 0.5
+        match_reasons = []
+        ineligibility_reasons = []
+        is_disqualified = False
 
-        # Gender matching
-        gender = profile.gender.value
-        if gender == "female":
-            if any(w in tags or w in eligibility_text for w in ["girl", "women", "female"]):
-                score += 0.2
-                match_reasons.append("Scheme specifically for girl/women students")
-        elif gender == "male":
-            if any(w in eligibility_text for w in ["girl only", "women only", "female only"]):
-                score = 0.0
-                ineligibility_reasons.append("Scheme is for female students only")
-
-        # Income matching
-        income = profile.annual_family_income
-        if income <= 100000:
-            score += 0.15
-            match_reasons.append("Low income — qualifies for most income-based schemes")
-        elif income <= 250000:
-            score += 0.1
-            match_reasons.append("Income within common eligibility limit (₹2.5L)")
-        elif income <= 800000:
-            score += 0.05
-        else:
-            score -= 0.1
-            ineligibility_reasons.append("Family income may exceed scheme limits")
-
-        # Marks matching
-        marks = profile.percentage_marks
-        if marks >= 80:
-            score += 0.1
-            match_reasons.append(f"Strong academic record ({marks}%) — merit-based schemes applicable")
-        elif marks >= 60:
-            score += 0.05
-
-        # Education level
-        edu = profile.education_level.value
-        if "research" in tags or "fellowship" in tags or "phd" in tags:
-            if edu in ["phd", "postgraduate"]:
-                score += 0.2
-                match_reasons.append("Research/fellowship scheme matches your education level")
+        # ── 1. HARD DISQUALIFICATION: Gender ──────────────────────────────────
+        if "girl" in tags or "female" in tags or "women" in tags or "girl students" in name_lower or raw_category == "female":
+            if gender == "male":
+                is_disqualified = True
+                ineligibility_reasons.append("Exclusive to girl/female applicants")
             else:
-                score -= 0.2
-                ineligibility_reasons.append("Research fellowships typically require PG/PhD level")
+                score += 0.25
+                match_reasons.append("Specially targeted for girl/female students")
 
-        if "internship" in tags:
-            if edu in ["undergraduate", "diploma", "vocational"]:
-                score += 0.15
-                match_reasons.append("Internship scheme suitable for your level")
+        # ── 2. HARD DISQUALIFICATION: Disability ──────────────────────────────
+        if "disabled" in tags or "differently-abled" in tags or "saksham" in sid or raw_category == "disabled":
+            if not has_disability:
+                is_disqualified = True
+                ineligibility_reasons.append("Requires ≥40% certified disability")
+            else:
+                score += 0.35
+                match_reasons.append("Exclusive scholarship for differently-abled students")
 
-        # Disability
-        if profile.has_disability:
-            if any(w in tags or w in eligibility_text for w in ["disabled", "disability", "saksham", "handicapped"]):
+        # ── 3. HARD DISQUALIFICATION: Caste / Social Category ─────────────────
+        # SC only schemes
+        if "sc" in tags and "st" not in tags and "obc" not in tags and "all" not in tags and raw_category == "sc":
+            if cat != "sc":
+                is_disqualified = True
+                ineligibility_reasons.append(f"Restricted to SC students (your profile: {cat.upper()})")
+            else:
                 score += 0.3
-                match_reasons.append("Scheme specifically for differently-abled students")
+                match_reasons.append("Targeted financial aid for Scheduled Caste students")
 
-        # Interests
-        for interest in profile.interests:
-            if interest.lower() in tags or interest.lower() in eligibility_text:
+        # SC/ST combined schemes (e.g. Ambedkar Hostels)
+        elif raw_category == "sc_st" or ("sc" in tags and "st" in tags):
+            if cat not in ["sc", "st"]:
+                is_disqualified = True
+                ineligibility_reasons.append(f"Restricted to SC/ST students (your profile: {cat.upper()})")
+            else:
+                score += 0.25
+                match_reasons.append("Reserved welfare scheme for SC/ST students")
+
+        # OBC only schemes
+        elif "obc" in tags or raw_category == "obc" or "for obc" in name_lower:
+            if cat != "obc":
+                is_disqualified = True
+                ineligibility_reasons.append(f"Restricted to OBC category (your profile: {cat.upper()})")
+            else:
+                score += 0.3
+                match_reasons.append("Targeted scholarship for OBC students")
+
+        # Minority only schemes
+        elif "minority" in tags or raw_category == "minority" or "minority" in name_lower:
+            if cat != "minority":
+                is_disqualified = True
+                ineligibility_reasons.append(f"Restricted to recognized minority communities (your profile: {cat.upper()})")
+            else:
+                score += 0.3
+                match_reasons.append("Merit-cum-means assistance for minority communities")
+
+        # ── 4. HARD DISQUALIFICATION: State / Regional Domicile ───────────────
+        if "ishan-uday" in sid or "north east" in tags or "north east" in name_lower:
+            if state_name not in ne_states and "north east" not in state_name:
+                is_disqualified = True
+                ineligibility_reasons.append(f"Requires domicile in North Eastern states (your state: {profile.state})")
+            else:
+                score += 0.3
+                match_reasons.append(f"Dedicated North East development scholarship for {profile.state}")
+
+        # ── 5. HARD DISQUALIFICATION: Strict Income Limits ───────────────────
+        # OBC Post Matric: ≤ 1 Lakh
+        if "obc-postmatric" in sid:
+            if income > 100000:
+                is_disqualified = True
+                ineligibility_reasons.append(f"Annual family income exceeds ₹1,00,000 ceiling (your income: ₹{income:,})")
+
+        # SC Post Matric / Minority: ≤ 2.5 Lakh
+        elif "nsp-postmatric" in sid or "nsp-merit-cum-means" in sid:
+            if income > 250000:
+                is_disqualified = True
+                ineligibility_reasons.append(f"Annual family income exceeds ₹2,50,000 ceiling (your income: ₹{income:,})")
+
+        # Pragati / Saksham / NOS: ≤ 8 Lakh
+        elif any(k in sid for k in ["pragati", "saksham", "overseas"]):
+            if income > 800000:
+                is_disqualified = True
+                ineligibility_reasons.append(f"Annual family income exceeds ₹8,00,000 ceiling (your income: ₹{income:,})")
+
+        # ── 6. HARD DISQUALIFICATION: Education Level & Age ───────────────────
+        # UGC-JRF: strictly post-graduate / PhD
+        if "ugc-jrf" in sid or "jrf" in tags:
+            if edu not in ["postgraduate", "phd"]:
+                is_disqualified = True
+                ineligibility_reasons.append("UGC-JRF requires Master's (PG) completion or ongoing PhD")
+            else:
+                score += 0.25
+                match_reasons.append("Qualifies for national research fellowship level")
+
+        # National Overseas Scholarship: strictly Masters / PhD
+        if "national-overseas" in sid or "overseas" in tags:
+            if edu not in ["undergraduate", "postgraduate", "phd"]:
+                is_disqualified = True
+                ineligibility_reasons.append("Overseas scholarship requires Bachelor degree for PG/PhD abroad")
+            else:
+                score += 0.2
+                match_reasons.append("Advanced degree study abroad opportunity")
+
+        # PM Internship: youth age 21-24, typically diploma/graduates
+        if "pm-internship" in sid:
+            if profile.age < 21 or profile.age > 24:
+                is_disqualified = True
+                ineligibility_reasons.append(f"PM Internship requires age between 21 and 24 (your age: {profile.age})")
+            else:
+                score += 0.2
+                match_reasons.append("Age-eligible for flagship PM 1-year corporate internship")
+
+        # ── 7. Soft Merit & General Boosts ────────────────────────────────────
+        if not is_disqualified:
+            if marks >= 80:
+                score += 0.15
+                match_reasons.append(f"High academic merit ({marks}%) increases selection probability")
+            elif marks >= 60:
+                score += 0.05
+                match_reasons.append(f"Academic score ({marks}%) satisfies minimum criteria")
+
+            # Income consideration
+            if income <= 150000:
                 score += 0.1
-                match_reasons.append(f"Matches your interest in {interest}")
+                match_reasons.append("Prioritized for economically weaker students")
 
-        # Clamp score
-        score = min(1.0, max(0.0, score))
+            # Interests
+            for interest in user_interests:
+                if interest in tags or interest in eligibility_text:
+                    score += 0.1
+                    match_reasons.append(f"Aligns with your interest in {interest}")
 
-        # Map category
+            # General universal scheme match reason
+            if not match_reasons:
+                match_reasons.append("Universal student welfare program open to your category and level")
+
+        final_score = 0.0 if is_disqualified else min(1.0, max(0.1, round(score, 2)))
+
+        # Scheme Category mapping
         scheme_cat = SchemeCategory.SCHOLARSHIP
         for tag in tags:
             if "loan" in tag:
@@ -363,9 +446,6 @@ def _rule_based_eligibility(profile: StudentProfile, schemes: list) -> List[Sche
             elif "disabled" in tag or "disability" in tag:
                 scheme_cat = SchemeCategory.DIFFERENTLY_ABLED
 
-        if not match_reasons:
-            match_reasons.append("Scheme is open to students matching your profile")
-
         results.append(SchemeResult(
             scheme_id=raw.get("scheme_id", "") or str(uuid.uuid4()),
             name=raw.get("name", "Unknown Scheme"),
@@ -377,7 +457,7 @@ def _rule_based_eligibility(profile: StudentProfile, schemes: list) -> List[Sche
             portal_url=raw.get("portal_url", "https://www.myscheme.gov.in"),
             deadline=raw.get("deadline"),
             documents_required=raw.get("documents_required", []),
-            eligibility_score=round(score, 2),
+            eligibility_score=final_score,
             match_reasons=match_reasons,
             ineligibility_reasons=ineligibility_reasons,
             source=raw.get("source", "myscheme"),
@@ -389,7 +469,8 @@ def _rule_based_eligibility(profile: StudentProfile, schemes: list) -> List[Sche
 # ─── Node 5: rank_and_generate ───────────────────────────────────────────────
 
 # Minimum eligibility score for a scheme to be included in the final output
-_MIN_SCORE = 0.3
+# We require at least 0.50 so disqualified (0.0) and poor matches are filtered out!
+_MIN_SCORE = 0.50
 
 # Documents every applicant almost certainly needs
 _BASE_DOCUMENTS = [
