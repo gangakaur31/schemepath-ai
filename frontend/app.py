@@ -1,5 +1,5 @@
 """
-SchemePathAI — Streamlit Frontend
+AVSAR — Streamlit Frontend
 Autonomous student government scheme navigator powered by AI.
 """
 
@@ -23,7 +23,7 @@ from storage import (
 # ─── Page Configuration ────────────────────────────────────────────────────────
 
 st.set_page_config(
-    page_title="SCHEMEPATH-AI",
+    page_title="AVSAR",
     page_icon=None,
     layout="wide",
     initial_sidebar_state="expanded",
@@ -869,7 +869,7 @@ with st.sidebar:
     st.markdown("""
     <div style='padding: 4px 0 16px 0; border-bottom: 1px solid #1E293B; margin-bottom: 20px;'>
         <div style='font-size: 1.35rem; font-weight: 800; color: #FFFFFF; letter-spacing: 0.05em;'>
-            SCHEMEPATH<span style='color: #38BDF8;'>-AI</span>
+            AVSAR
         </div>
         <div style='font-size: 0.76rem; color: #94A3B8; margin-top: 5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;'>
             National Student Scheme Navigator
@@ -1000,7 +1000,7 @@ def page_home():
         <div class='hero-badge'>Government Scheme & Welfare Directory</div>
         <h1>Find Government Scholarships and Schemes</h1>
         <p>
-            SchemePathAI systematically matches your academic profile against 500+ central and state
+            AVSAR systematically matches your academic profile against 500+ central and state
             government welfare programs, calculates eligibility thresholds, and provides guided application assistance.
         </p>
     </div>
@@ -1810,10 +1810,10 @@ def page_applications():
 # ─── Page: ABOUT ──────────────────────────────────────────────────────────────
 
 def page_about():
-    st.markdown("<div class='section-header'>About SchemePathAI</div>", unsafe_allow_html=True)
+    st.markdown("<div class='section-header'>About AVSAR</div>", unsafe_allow_html=True)
 
     st.markdown("""
-    **SchemePathAI** is an automated student welfare scheme discovery and guidance platform
+    **AVSAR** is an automated student welfare scheme discovery and guidance platform
     designed for the Indian education system. It eliminates information asymmetries by matching eligible
     students with government scholarships, educational loans, and welfare benefits across federal and state levels.
     """)
@@ -1860,7 +1860,7 @@ def page_about():
     st.markdown("<hr style='border-color: #CBD5E1; margin: 24px 0;'/>", unsafe_allow_html=True)
     st.markdown(
         "<div style='text-align:center; color:#64748B; font-size:0.85rem;'>"
-        "SchemePathAI · Student Government Scheme Navigator · Open Source"
+        "AVSAR · Student Government Scheme Navigator · Open Source"
         "</div>",
         unsafe_allow_html=True,
     )
