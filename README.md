@@ -1,9 +1,9 @@
-# SchemePathAI
+# AVSAR
 
 ![Python](https://img.shields.io/badge/Python-3.11+-blue) ![FastAPI](https://img.shields.io/badge/FastAPI-0.111+-green) ![Gemini](https://img.shields.io/badge/Gemini-1.5_Flash-orange) ![Playwright](https://img.shields.io/badge/Playwright-Automation-purple) ![Streamlit](https://img.shields.io/badge/Streamlit-Frontend-red)
 
-> **India's autonomous navigator for student government schemes.**
-> One profile. 500+ schemes. Clear guidance.
+> **India's first AI-powered autonomous navigator for student government schemes.**
+> One profile. 500+ schemes. Zero confusion.
 
 ---
 
@@ -22,19 +22,24 @@ India has **500+ central and state government schemes** for students — scholar
 
 ## Solution
 
-SchemePathAI is an **autonomous agentic system** that:
+**AVSAR** is an autonomous AI system that:
 1. Takes a student's profile (category, income, education, state, interests)
 2. **Discovers all applicable schemes** across 14 categories from live government sources
-3. Uses **Gemini AI** to reason through eligibility and rank schemes
-4. **Navigates government portals autonomously** using Playwright browser automation
-5. Pre-fills application forms and returns step-by-step guidance
+3. Uses **Gemini AI** to reason through eligibility and rank schemes by benefit amount
+4. Generates a **personalised, portal-specific application guide** with exact steps
+5. Tracks which schemes the student has applied to
 
 ### Key Features
-- **Universal Scheme Matcher** — covers 14 categories, not just scholarships
-- **Browser Agent** — Playwright navigates real government portals
-- **Document Checklist Generator** — exact documents needed per scheme
-- **LangGraph Agent** — multi-step AI reasoning with error recovery
-- **No Dummy Data** — all data from live official government sources
+
+| Feature | Description |
+|---|---|
+| 🔍 **Universal Scheme Matcher** | Covers 14 categories — scholarships, loans, internships, skill development, research fellowships and more |
+| 📋 **Smart Application Guide** | Portal-specific step-by-step instructions, documents checklist, pro tips — different for every scheme |
+| 🎙️ **Voice Summary** | Reads out scheme details using text-to-speech |
+| ✅ **Mark as Applied** | Track which schemes you've applied to with persistent local storage |
+| 📊 **My Applications Dashboard** | See total, submitted, under review, and approved application counts |
+| 🤖 **LangGraph AI Agent** | Multi-step reasoning pipeline with rule-based fallback |
+| 🚫 **No Dummy Data** | All 15 schemes from live official government sources only |
 
 ---
 
@@ -43,32 +48,31 @@ SchemePathAI is an **autonomous agentic system** that:
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │              STUDENT  (Streamlit Frontend :8501)            │
-│     Profile Form → Chat → Scheme Cards → Auto-Apply        │
+│   Profile Form → Scheme Cards → Application Guide          │
+│   Mark as Applied → My Applications Dashboard              │
 └──────────────────────────┬──────────────────────────────────┘
                            │ REST API
 ┌──────────────────────────▼──────────────────────────────────┐
 │               FastAPI Backend (:8000)                       │
 │                                                             │
 │   POST /api/discover → LangGraph Agent Pipeline:           │
-│                                                             │
 │   parse_profile → fetch_schemes → embed_and_store          │
 │        → check_eligibility → rank_and_generate             │
 │                                                             │
+│   POST /api/guide → ApplicationGuideGenerator:             │
+│   Portal-specific steps + docs checklist + pro tips        │
+│                                                             │
 │   ┌────────────────┐  ┌──────────────────────────────┐    │
 │   │ MyScheme        │  │  ChromaDB RAG                 │    │
-│   │ Scraper         │  │  (Google text-embedding-004)  │    │
-│   │ (Playwright)    │  │                               │    │
+│   │ Scraper         │  │  (Semantic Search)            │    │
 │   └────────────────┘  └──────────────────────────────┘    │
-│                                                             │
-│   POST /api/apply → Browser Agent (Playwright):            │
-│   Navigate Portal → Detect Form → Pre-fill → Screenshot   │
 └─────────────────────────────────────────────────────────────┘
                            │
 ┌──────────────────────────▼──────────────────────────────────┐
 │                 REAL DATA SOURCES                           │
 │  myscheme.gov.in  •  scholarships.gov.in                   │
-│  vidyalakshmi.co.in  •  pmkvyofficial.org                  │
-│  pminternship.mca.gov.in  •  data.gov.in                   │
+│  vidyalakshmi.co.in  •  pmkvyproject.org                   │
+│  pminternship.mca.gov.in  •  online-inspire.gov.in         │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -77,39 +81,34 @@ SchemePathAI is an **autonomous agentic system** that:
 ## Quick Start
 
 ### Prerequisites
-- Python 3.11+
+- Python 3.9+
 - Google Gemini API key (free at [aistudio.google.com](https://aistudio.google.com))
 
 ```bash
 # 1. Clone the repo
-git clone <your-repo-url>
+git clone https://github.com/gangakaur31/schemepath-ai.git
 cd schemepath-ai
 
-# 2. Create virtual environment
-python -m venv venv
-source venv/bin/activate        # Windows: venv\Scripts\activate
+# 2. Install dependencies
+pip3 install -r requirements.txt
+python3 -m playwright install chromium
 
-# 3. Install dependencies
-pip install -r requirements.txt
-playwright install chromium
-
-# 4. Set up environment
+# 3. Set up environment
 cp .env.example .env
 # Open .env and set your GOOGLE_API_KEY
 
-# 5. Start backend (Terminal 1)
+# 4. Start backend (Terminal 1)
 cd backend
-uvicorn main:app --reload --port 8000
+PYTHONPATH=. python3 -m uvicorn main:app --reload --port 8000
 
-# 6. Start frontend (Terminal 2)
+# 5. Start frontend (Terminal 2)
 cd frontend
-streamlit run app.py
-
-# OR: Start everything at once
-python start.py
+python3 -m streamlit run app.py
 ```
 
 Open **http://localhost:8501** in your browser.
+
+> **Note:** Always start the backend first, then the frontend.
 
 ---
 
@@ -118,8 +117,7 @@ Open **http://localhost:8501** in your browser.
 | Method | Endpoint | Description |
 |---|---|---|
 | `POST` | `/api/discover` | Discover eligible schemes for a student profile |
-| `POST` | `/api/apply` | Trigger browser agent to navigate a scheme portal |
-| `GET` | `/api/schemes/{session_id}` | Retrieve previously discovered schemes |
+| `POST` | `/api/guide` | Generate personalised application guide for a scheme |
 | `GET` | `/health` | Backend health check |
 | `GET` | `/docs` | Interactive API documentation (Swagger) |
 
@@ -129,20 +127,20 @@ Open **http://localhost:8501** in your browser.
 
 | # | Category | Example Schemes |
 |---|---|---|
-| 1 | Scholarships | NSP Post-Matric, Merit-cum-Means, Minority Scholarship |
-| 2 | Education Loans | Vidya Lakshmi, PM Vidya Laxmi |
+| 1 | Scholarships | NSP Post-Matric OBC/SC, Minority Merit-cum-Means |
+| 2 | Education Loans | Vidya Lakshmi (apply to multiple banks at once) |
 | 3 | Hostel & Housing | Dr. Ambedkar Hostels, SC/ST Hostels |
-| 4 | Fee Reimbursement | AP Jagananna Vidya Deevena, state waivers |
-| 5 | Digital Access | Free laptop schemes, PM e-Vidya |
-| 6 | Skill Development | PMKVY, DDU-GKY, NAPS |
-| 7 | Research Fellowships | UGC-JRF, CSIR, DST INSPIRE, KVPY |
-| 8 | Study Abroad | National Overseas Scholarship |
-| 9 | Girl Child Schemes | PRAGATI, CBSE Single Girl, Sukanya Samriddhi |
-| 10 | Differently Abled | AICTE Saksham Scholarship |
-| 11 | Sports | TOPS Scheme, SAI Scholarships |
-| 12 | Health Insurance | Ayushman Bharat student coverage |
-| 13 | Book Grants | Free textbook state schemes |
-| 14 | Internships | PM Internship Scheme |
+| 4 | Skill Development | PMKVY, DDU-GKY, NAPS |
+| 5 | Research Fellowships | UGC-JRF, DST INSPIRE-SHE (formerly KVPY) |
+| 6 | Study Abroad | National Overseas Scholarship (NOS) |
+| 7 | Girl Child Schemes | PRAGATI (AICTE), CBSE Single Girl Child |
+| 8 | Differently Abled | AICTE Saksham Scholarship |
+| 9 | Sports | TOPS Scheme, SAI Scholarships |
+| 10 | Internships | PM Internship Scheme (₹5,000/month stipend) |
+| 11 | Book Grants | Free textbook state schemes |
+| 12 | Digital Access | PM e-Vidya, free laptop schemes |
+| 13 | Health Insurance | Ayushman Bharat student coverage |
+| 14 | Fee Reimbursement | State-level fee waiver schemes |
 
 ---
 
@@ -150,12 +148,13 @@ Open **http://localhost:8501** in your browser.
 
 | Source | URL | Usage |
 |---|---|---|
-| MyScheme Portal | myscheme.gov.in | Primary scheme aggregator — 1000+ schemes |
-| National Scholarship Portal | scholarships.gov.in | Central scholarship schemes |
+| MyScheme Portal | myscheme.gov.in | Primary scheme aggregator |
+| National Scholarship Portal | scholarships.gov.in | Central + state scholarships |
 | Vidya Lakshmi | vidyalakshmi.co.in | Education loan schemes |
-| PMKVY | pmkvyofficial.org | Skill development |
-| PM Internship | pminternship.mca.gov.in | Internship programs |
-| Data.gov.in | data.gov.in/api | Open government datasets |
+| PMKVY | pmkvyproject.org | Skill development |
+| PM Internship | pminternship.mca.gov.in | Internship programmes |
+| DST INSPIRE | online-inspire.gov.in | Science research fellowships |
+| NOS | nosmsje.gov.in | Overseas scholarship for SC students |
 
 ---
 
@@ -164,11 +163,10 @@ Open **http://localhost:8501** in your browser.
 | Component | Technology |
 |---|---|
 | LLM | Google Gemini 1.5 Flash |
-| Embeddings | Google text-embedding-004 |
-| Agent Framework | LangGraph (state machine) |
-| Vector DB | ChromaDB (persistent) |
-| Browser Automation | Playwright (async) |
-| Backend | FastAPI + uvicorn |
+| Agent Framework | LangGraph (state machine pipeline) |
+| Vector DB | ChromaDB (semantic search) |
+| Voice Summary | gTTS (Google Text-to-Speech) |
+| Backend | FastAPI + Uvicorn |
 | Frontend | Streamlit |
 | HTTP Client | httpx (async) + requests |
 
@@ -178,9 +176,9 @@ Open **http://localhost:8501** in your browser.
 
 | Name | Role |
 |---|---|
-| Team Member 1 | Backend & Agent Engineering |
-| Team Member 2 | Data Pipeline & RAG |
-| Team Member 3 | Frontend & Browser Automation |
+| Ganga Kaur | Backend, AI Agent & Guide Generator |
+| Shambhavi Verma | Frontend UI & Voice Summary Feature |
+| Ishita Jain | Mark as Applied & My Applications Feature |
 
 ---
 
